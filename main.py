@@ -32,7 +32,7 @@ def main(gpu, args, wandb_logger):
 if __name__ == '__main__':
     # args
     parser = argparse.ArgumentParser()
-    yaml_config = yaml_config_hook("./configs/ADHD.yaml")
+    yaml_config = yaml_config_hook("./configs/ABIDEI_DX.yaml")
     for k, v in yaml_config.items():
         parser.add_argument(f"--{k}", default=v, type=type(v))
 
@@ -45,7 +45,7 @@ if __name__ == '__main__':
     # Master address for distributed data parallel
     os.environ["CUDA_VISIBLE_DEVICES"] = args.visible_gpus
     os.environ['MASTER_ADDR'] = 'localhost'
-    os.environ['MASTER_PORT'] = '12345'
+    os.environ['MASTER_PORT'] = '6666'
 
     # set number of rois according to the atlas
     atlas2roi = {'cc400': 392, 'ho': 111, 'cc200': 200} if 'ABIDE' in args.dataset else {'cc400': 351}
@@ -62,7 +62,7 @@ if __name__ == '__main__':
         config = vars(args)
 
         wandb_logger = wandb.init(
-            project=f"{args.dataset}_{args.task}",
+            project=f"{args.dataset}_Baselines",
             config=config
         )
     else:

@@ -2,14 +2,12 @@ import os
 import torch
 import pandas as pd
 import numpy as np
-from einops import rearrange
 from torch.utils.data import Dataset
-from torch.nn.utils.rnn import pad_sequence
-from sklearn.preprocessing import OneHotEncoder
+from nilearn.connectome import ConnectivityMeasure
 
 
 class AdhdROIDataset(Dataset):
-    def __init__(self, csv, data_root, atlas, n_views, transforms, filter='Yes', cp="", cnp="", task='DX'):
+    def __init__(self, csv, data_root, atlas, transforms=None, filter='Yes', cp="", cnp="", task='DX'):
         super().__init__()
         self.filter = filter
         if filter == 'both':
@@ -57,25 +55,23 @@ class AdhdROIDataset(Dataset):
         cp_label = self.cp_labels[idx]
         cnp_label = self.cnp_labels[idx]
         file_path = os.path.join(self.data_path, subject, filename)
-        roi = pd.read_csv(file_path, sep='\t').values[:, 2:].astype(float).T # drop the first two columns
+        timeseries = pd.read_csv(file_path, sep='\t').values[:, 2:].astype(float) # drop the first two columns
+        measure = ConnectivityMeasure(kind='correlation')
+        corr = measure.fit_transform([timeseries])[0]
+        corr[corr == float('inf')] = 0
+
         if self.transforms:
-            temp = [torch.from_numpy(self.transforms(roi).T) for _ in range(self.n_views - 1)]
-            # append the original view
-            temp.append(torch.from_numpy(roi.T))
-            roi = pad_sequence(temp, batch_first=True) # [V, T, N]
-            roi = rearrange(roi, 'v t n -> t v n') # [V, N, T] -> [T, V, N]
-            
-        else:
-            # [N, T] -> [T, 1, N]
-            roi = torch.from_numpy(roi.T).unsqueeze(1).float()
-        return roi, label, cnp_label, cp_label
+            timeseries = self.transforms(timeseries)
+        timeseries = timeseries[:100]
+        return timeseries, corr, label, cnp_label, cp_label
 
     @staticmethod
     def collate_fn(batch):
-        data, label, cnp_label, cp_label = list(zip(*batch))
+        timeseries, corr, label, cnp_label, cp_label = list(zip(*batch))
         # pad the sequence on T
-        data = pad_sequence(data, batch_first=True).float()
+        timeseries = torch.from_numpy(timeseries).float()
+        corr = torch.from_numpy(corr).float()
         label = torch.from_numpy(np.array(label)).long()
         cnp_label = torch.from_numpy(np.array(cnp_label)).float()
         cp_label = torch.from_numpy(np.array(cp_label)).float()
-        return {'x': data, 'label': label, 'cnp_label': cnp_label, 'cp_label': cp_label}
+        return {'timeseries': timeseries, 'corr': corr, 'label': label, 'cnp_label': cnp_label, 'cp_label': cp_label}

@@ -13,12 +13,7 @@ val_csv: "./datasets/splits/ABIDE_Validation.csv"
 checkpoints: "./checkpoints"
 
 # Model Options
-model: "graphseq"
-embed_dim: 392
-d_inner: 512
-n_layers: 5
-d_x: 32
-brain_graph: ""
+model: "BrainNetCNN"
 
 # Dataset Options
 dataset: "ABIDE_BNT"
@@ -26,24 +21,17 @@ task: "DX"
 atlas: "cc400"
 cnp: "AGE_AT_SCAN, BMI"
 cp: "SEX, HANDEDNESS_CATEGORY, CURRENT_MED_STATUS"
-n_views: 14
 
 # Training Options
 seed: 42
-batch_size: 20
-epochs: 200
+batch_size: 30
+epochs: 100
 
 # Optimization options
 optimizer: "Adam"
 pcgrad: False
 lr: 1.0e-4
-ttpl: 1.0e-5
-lr_ttt: 1.0e-7
 dropout: 0.4
-weight_decay: 0.03
+weight_decay: 0.01
 warmup_epochs: 10
-scheduler: True
-lambda_con: 0.05
-temp_con: 0.07
-temp_gd: 1.0
-temp_decay: 0.999
+scheduler: False
