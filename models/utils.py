@@ -32,5 +32,8 @@ def get_model(args):
     elif args.model.lower() == 'fbnetgen':
         from .fbnetgen import FBNETGEN
         return FBNETGEN(args)
+    elif args.model.lower() == 'comtf':
+        from .ComTF import ComBrainTF
+        return ComBrainTF(args)
     else:
         raise NotImplementedError

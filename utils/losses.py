@@ -32,7 +32,7 @@ def mixup_cluster_loss(matrixs, y, intra_weight=2):
 class LossFunction(nn.Module):
     def __init__(self, args):
         super().__init__()
-        self.ce = nn.CrossEntropyLoss(reduction='sum')
+        self.ce = nn.CrossEntropyLoss()
         self.model = args.model
     
     def forward(self, outputs, data):
