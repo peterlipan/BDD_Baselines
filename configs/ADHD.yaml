@@ -12,7 +12,7 @@ test_csv: "./datasets/splits/ADHD200_Testing.csv"
 checkpoints: "./checkpoints"
 
 # Model Options
-model: "FBNetGen"
+model: "ComTF"
 
 
 # Dataset Options

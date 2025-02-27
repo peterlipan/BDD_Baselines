@@ -102,7 +102,7 @@ class ComBrainTF(nn.Module):
 
         self.attention_list = nn.ModuleList()
         forward_dim = args.num_roi
-        n_head = 8
+        n_head = 9
 
 
         self.num_MHSA = 1 # default
@@ -173,7 +173,10 @@ class ComBrainTF(nn.Module):
         with open('node_clus_map.pickle', 'rb') as handle:
             self.node_clus_map = pickle.load(handle)
 
-        self.node_rearranged_len = [41, 70, 91, 110, 130, 137, 158, 200]
+
+        # lazy implementation: assign the nodes not in the dict as the last community
+        self.node_rearranged_len = [41, 70, 91, 110, 130, 137, 158, forward_dim]
+        self.node_clus_map.update({i: 7 for i in range(self.node_rearranged_len[-2], self.node_rearranged_len[-1])})
 
     def rearrange_node_feature(self, node_feature_rearranged, node_feature, rearranged_indices):
         # Rearrange according to node_clus_map which is a dictionary {0:1, 1:3, .... 199:7}
