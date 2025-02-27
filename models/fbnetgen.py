@@ -3,13 +3,12 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.nn import Conv1d, MaxPool1d, Linear, GRU
-from omegaconf import DictConfig
-from .base import BaseModel
+from .utils import ModelOutputs
 
 
 class GruKRegion(nn.Module):
 
-    def __init__(self, kernel_size=8, layers=4, out_size=8, dropout=0.5):
+    def __init__(self, kernel_size=9, layers=4, out_size=8, dropout=0.5):
         super().__init__()
         self.gru = GRU(kernel_size, kernel_size, layers,
                        bidirectional=True, batch_first=True)
@@ -27,7 +26,7 @@ class GruKRegion(nn.Module):
 
         b, k, d = raw.shape
 
-        x = raw.view((b*k, -1, self.kernel_size))
+        x = raw.reshape((b*k, -1, self.kernel_size))
 
         x, h = self.gru(x)
 
@@ -217,38 +216,34 @@ class Embed2GraphByLinear(nn.Module):
         return m
 
 
-class FBNETGEN(BaseModel):
+class FBNETGEN(nn.Module):
 
-    def __init__(self, config: DictConfig):
+    def __init__(self, args):
         super().__init__()
 
-        assert config.model.extractor_type in ['cnn', 'gru']
-        assert config.model.graph_generation in ['linear', 'product']
-        assert config.dataset.timeseries_sz % config.model.window_size == 0
+        self.embedding_size = 16
+        self.window_size = 4
+        self.num_gru_layers = 4
 
-        self.graph_generation = config.model.graph_generation
-        if config.model.extractor_type == 'cnn':
-            self.extract = ConvKRegion(
-                out_size=config.model.embedding_size, kernel_size=config.model.window_size,
-                time_series=config.dataset.timeseries_sz)
-        elif config.model.extractor_type == 'gru':
-            self.extract = GruKRegion(
-                out_size=config.model.embedding_size, kernel_size=config.model.window_size,
-                layers=config.model.num_gru_layers)
-        if self.graph_generation == "linear":
-            self.emb2graph = Embed2GraphByLinear(
-                config.model.embedding_size, roi_num=config.dataset.node_sz)
-        elif self.graph_generation == "product":
-            self.emb2graph = Embed2GraphByProduct(
-                config.model.embedding_size, roi_num=config.dataset.node_sz)
+        # default: gru
+        self.extract = GruKRegion(
+            out_size=self.embedding_size, kernel_size=self.window_size,
+            layers=self.num_gru_layers)
+
+        # default: product
+        self.emb2graph = Embed2GraphByProduct(
+            self.embedding_size, roi_num=args.num_roi)
 
         self.predictor = GNNPredictor(
-            config.dataset.node_feature_sz, roi_num=config.dataset.node_sz)
+            args.num_roi, roi_num=args.num_roi)
 
-    def forward(self, time_seires, node_feature):
-        x = self.extract(time_seires)
+    def forward(self, data):
+        # [B, T, N] -> [B, N, T]
+        x = data['timeseries'].permute(0, 2, 1)
+        x = self.extract(x) # [B, N, T]
         x = F.softmax(x, dim=-1)
         m = self.emb2graph(x)
         m = m[:, :, :, 0]
+        logits = self.predictor(m, data['corr'])
 
-        return self.predictor(m, node_feature), m
+        return ModelOutputs(logits=logits, learnable_matrix=m)

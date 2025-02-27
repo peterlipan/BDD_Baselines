@@ -23,5 +23,14 @@ def get_model(args):
     if args.model.lower() == 'brainnetcnn':
         from .brainnetcnn import BrainNetCNN
         return BrainNetCNN(args)
+    elif args.model.lower() == 'graphtransformer':
+        from .GraphTransformer import GraphTransformer
+        return GraphTransformer(args)
+    elif args.model.lower() == 'bnt':
+        from .bnt import BrainNetworkTransformer
+        return BrainNetworkTransformer(args)
+    elif args.model.lower() == 'fbnetgen':
+        from .fbnetgen import FBNETGEN
+        return FBNETGEN(args)
     else:
         raise NotImplementedError

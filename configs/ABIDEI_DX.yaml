@@ -13,7 +13,7 @@ val_csv: "./datasets/splits/ABIDE_Validation.csv"
 checkpoints: "./checkpoints"
 
 # Model Options
-model: "BrainNetCNN"
+model: "GraphTransformer"
 
 # Dataset Options
 dataset: "ABIDE_BNT"

@@ -1,37 +1,36 @@
 import torch
 import torch.nn as nn
 from torch.nn import TransformerEncoderLayer
-from omegaconf import DictConfig
-from .base import BaseModel
+from .utils import ModelOutputs
 
 
-class GraphTransformer(BaseModel):
+class GraphTransformer(nn.Module):
 
-    def __init__(self, cfg: DictConfig):
+    def __init__(self, args):
 
         super().__init__()
 
         self.attention_list = nn.ModuleList()
-        self.readout = cfg.model.readout
-        self.node_num = cfg.dataset.node_sz
+        self.readout = 'concat'
+        self.node_num = args.num_roi
 
-        for _ in range(cfg.model.self_attention_layer):
+        for _ in range(2):
             self.attention_list.append(
-                TransformerEncoderLayer(d_model=cfg.dataset.node_feature_sz, nhead=4, dim_feedforward=1024,
+                TransformerEncoderLayer(d_model=args.num_roi, nhead=4, dim_feedforward=1024,
                                         batch_first=True)
             )
 
-        final_dim = cfg.dataset.node_feature_sz
+        final_dim = args.num_roi
 
         if self.readout == "concat":
             self.dim_reduction = nn.Sequential(
-                nn.Linear(cfg.dataset.node_feature_sz, 8),
+                nn.Linear(args.num_roi, 8),
                 nn.LeakyReLU()
             )
             final_dim = 8 * self.node_num
 
         elif self.readout == "sum":
-            self.norm = nn.BatchNorm1d(cfg.dataset.node_feature_sz)
+            self.norm = nn.BatchNorm1d(args.num_roi)
 
         self.fc = nn.Sequential(
             nn.Linear(final_dim, 256),
@@ -41,7 +40,8 @@ class GraphTransformer(BaseModel):
             nn.Linear(32, 2)
         )
 
-    def forward(self, time_seires, node_feature):
+    def forward(self, data):
+        node_feature = data['corr']
         bz, _, _, = node_feature.shape
 
         for atten in self.attention_list:
@@ -58,8 +58,10 @@ class GraphTransformer(BaseModel):
         elif self.readout == "sum":
             node_feature = torch.sum(node_feature, dim=1)
             node_feature = self.norm(node_feature)
+        
+        logits = self.fc(node_feature)
 
-        return self.fc(node_feature)
+        return ModelOutputs(features=node_feature, logits=logits)
 
     def get_attention_weights(self):
         return [atten.get_attention_weights() for atten in self.attention_list]

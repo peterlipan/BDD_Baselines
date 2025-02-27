@@ -5,9 +5,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from .metrics import compute_avg_metrics
 import torch.distributed as dist
-from einops import rearrange
-from .pcgrad import PCGrad
-from .losses import APheSCL, MultiviewCrossEntropy
+from .losses import LossFunction
 from torch.utils.data import DataLoader
 from datasets import AbideROIDataset, Transforms, AdhdROIDataset
 from models import get_model
@@ -40,8 +38,7 @@ class Trainer:
         args.num_cnp = self.train_dataset.num_cnp
 
         self.train_loader = DataLoader(self.train_dataset, batch_size=args.batch_size, shuffle=(train_sampler is None),
-                                        drop_last=True, num_workers=args.workers, sampler=train_sampler, pin_memory=True,
-                                        collate_fn=AdhdROIDataset.collate_fn)
+                                        drop_last=True, num_workers=args.workers, sampler=train_sampler, pin_memory=True,)
         
         n_clasees = self.train_dataset.n_classes
         self.n_classes = n_clasees
@@ -51,7 +48,7 @@ class Trainer:
             self.test_dataset = AdhdROIDataset(test_csv, args.data_root, atlas=args.atlas,
                                                cp=args.cp, cnp=args.cnp, task=args.task)
             self.test_loader = DataLoader(self.test_dataset, batch_size=args.batch_size, shuffle=False, drop_last=False,
-                                         num_workers=args.workers, pin_memory=True, collate_fn=AdhdROIDataset.collate_fn)
+                                         num_workers=args.workers, pin_memory=True)
             self.val_loader = None
         else:
             self.test_loader = None
@@ -103,7 +100,7 @@ class Trainer:
         self.optimizer = getattr(torch.optim, args.optimizer)(self.model.parameters(), lr=args.lr,
                                                               weight_decay=args.weight_decay)
         
-        self.ce = nn.CrossEntropyLoss().cuda()
+        self.criterion = LossFunction(args).cuda()
 
         if args.scheduler:
             self.scheduler = get_cosine_schedule_with_warmup(self.optimizer, args.warmup_epochs * step_per_epoch, 
@@ -121,7 +118,7 @@ class Trainer:
         predictions = torch.Tensor().cuda()
         with torch.no_grad():
             for data in loader:
-                data = {k: v.cuda(non_blocking=True) for k, v in data.items()}
+                data = {key: value.cuda(non_blocking=True) for key, value in data.items()}
                 outputs = self.model(data)
                 pred = F.softmax(outputs.logits, dim=-1)
                 ground_truth = torch.cat((ground_truth, data['label']))
@@ -138,10 +135,10 @@ class Trainer:
             if isinstance(self.train_loader.sampler, DistributedSampler):
                 self.train_loader.sampler.set_epoch(epoch)
             for data in self.train_loader:
-                data = {k: v.cuda(non_blocking=True) for k, v in data.items()}
+                data = {key: value.cuda(non_blocking=True) for key, value in data.items()}
 
                 outputs = self.model(data) 
-                loss = self.ce(outputs.logits, data['label'])
+                loss = self.criterion(outputs, data)
 
                 self.optimizer.zero_grad()
                 loss.backward()
@@ -151,8 +148,6 @@ class Trainer:
                         if p.grad is not None:
                             dist.all_reduce(p.grad.data, op=dist.ReduceOp.SUM)
                             p.grad.data /= dist.get_world_size()
-                        else:
-                            print(f'None grad: {name}')
                 nn.utils.clip_grad_norm_(self.model.parameters(), max_norm=5.0)
 
                 self.optimizer.step()

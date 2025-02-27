@@ -12,12 +12,7 @@ test_csv: "./datasets/splits/ADHD200_Testing.csv"
 checkpoints: "./checkpoints"
 
 # Model Options
-model: "graphseq"
-embed_dim: 256
-d_inner: 512
-n_layers: 2
-d_x: 16
-brain_graph: ""
+model: "FBNetGen"
 
 
 # Dataset Options
@@ -26,23 +21,17 @@ task: "DX"
 atlas: "cc400"
 cnp: "Age, Performance IQ"
 cp: "Gender, Med Status"
-n_views: 12
 
 # Training Options
 seed: 42
-batch_size: 32
+batch_size: 30
 epochs: 100
 
 # Optimization options
 optimizer: "Adam"
 pcgrad: False
-lr: 2.0e-4
-ttpl: 1.0e-7
+lr: 1.0e-4
 dropout: 0.5
-weight_decay: 0.1
+weight_decay: 0.01
 warmup_epochs: 10
-scheduler: True
-lambda_con: 0.05
-temp_con: 0.07
-temp_gd: 1.0
-temp_decay: 0.999
+scheduler: False

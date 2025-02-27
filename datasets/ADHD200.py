@@ -4,6 +4,7 @@ import pandas as pd
 import numpy as np
 from torch.utils.data import Dataset
 from nilearn.connectome import ConnectivityMeasure
+from sklearn.preprocessing import OneHotEncoder
 
 
 class AdhdROIDataset(Dataset):
@@ -23,10 +24,14 @@ class AdhdROIDataset(Dataset):
         self.data_root = data_root
         self.atlas = atlas
         self.data_path = os.path.join(data_root, atlas)
-        self.n_views = n_views
         self.transforms = transforms
         self.task = task
+
         self.labels = self.csv['DX'].values
+        enc = OneHotEncoder(handle_unknown='ignore')
+        self.onehot = enc.fit_transform(self.labels.reshape(-1, 1)).toarray()
+        self.onehot = self.onehot.astype(int)
+
         if self.task == 'DX': # binary classification
             self.labels[self.labels > 0] = 1 
         self.n_classes = len(np.unique(self.labels))
@@ -52,6 +57,7 @@ class AdhdROIDataset(Dataset):
         subject = row['Subject_ID']
         filename = row['Filename']
         label = self.labels[idx]
+        onehot = self.onehot[idx]
         cp_label = self.cp_labels[idx]
         cnp_label = self.cnp_labels[idx]
         file_path = os.path.join(self.data_path, subject, filename)
@@ -63,15 +69,13 @@ class AdhdROIDataset(Dataset):
         if self.transforms:
             timeseries = self.transforms(timeseries)
         timeseries = timeseries[:100]
-        return timeseries, corr, label, cnp_label, cp_label
-
-    @staticmethod
-    def collate_fn(batch):
-        timeseries, corr, label, cnp_label, cp_label = list(zip(*batch))
-        # pad the sequence on T
         timeseries = torch.from_numpy(timeseries).float()
         corr = torch.from_numpy(corr).float()
         label = torch.from_numpy(np.array(label)).long()
-        cnp_label = torch.from_numpy(np.array(cnp_label)).float()
-        cp_label = torch.from_numpy(np.array(cp_label)).float()
-        return {'timeseries': timeseries, 'corr': corr, 'label': label, 'cnp_label': cnp_label, 'cp_label': cp_label}
+        onehot = torch.from_numpy(onehot).long()
+        cnp_label = torch.from_numpy(cnp_label).float()
+        cp_label = torch.from_numpy(cp_label).float()
+
+        return {'timeseries': timeseries, 'corr': corr, 'label': label, 'onehot': onehot,
+                'cnp_label': cnp_label, 'cp_label': cp_label}
+

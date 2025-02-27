@@ -53,7 +53,7 @@ class Site:
                     if num_roi < self.target_num_roi:
                         print(f'Warning: {subject} has {num_roi} ROIs instead of {self.target_num_roi}')
                         continue
-                    if seq_len < 50:
+                    if seq_len < 100: # follow BNT
                         print(f'Warning: {subject} only has {seq_len} time points')
                         continue
                     df = df._append(sub_attr, ignore_index=True)
@@ -137,7 +137,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--src', type=str, default='/home/r20user17/Documents')
     parser.add_argument('--dst', type=str, default='/home/r20user17/Documents/ADHD200')
-    parser.add_argument('--split', type=str, default='/home/r20user17/mia/datasets/splits')
+    parser.add_argument('--split', type=str, default='./splits')
     parser.add_argument('--test_csv', type=str, default='./allSubs_testSet_phenotypic_dx.csv')
     parser.add_argument('--atlas', type=str, default='CC400')
     args = parser.parse_args()

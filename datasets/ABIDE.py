@@ -4,6 +4,7 @@ import pandas as pd
 import numpy as np
 from torch.utils.data import Dataset
 from nilearn.connectome import ConnectivityMeasure
+from sklearn.preprocessing import OneHotEncoder
 
 
 class AbideROIDataset(Dataset):
@@ -13,7 +14,12 @@ class AbideROIDataset(Dataset):
         csv = csv.fillna(-9999)
 
         self.filenames = csv['FILE_ID'].values
+
         self.labels = csv['DX_GROUP'].values
+        enc = OneHotEncoder(handle_unknown='ignore')
+        self.onehot = enc.fit_transform(self.labels.reshape(-1, 1)).toarray()
+        self.onehot = self.onehot.astype(int)
+        
         self.suffix = f"_rois_{atlas}.1D"
         self.data_root = data_root
         self.transforms = transforms
@@ -38,6 +44,7 @@ class AbideROIDataset(Dataset):
         self.num_cp = len(self.category_phenotype_names) + 1 # add label information
         self.num_cnp = len(self.continuous_phenotype_names)
 
+
     @staticmethod
     def _string2index(data):
         transformed_data = np.empty(data.shape, dtype=int)
@@ -58,6 +65,7 @@ class AbideROIDataset(Dataset):
     
     def __getitem__(self, idx):
         label = self.labels[idx]
+        onehot = self.onehot[idx]
         file_id = self.filenames[idx]
         cnp_label = self.cnp_fea[idx]
         cp_label = self.cp_fea[idx]
@@ -73,8 +81,9 @@ class AbideROIDataset(Dataset):
         timeseries = torch.from_numpy(timeseries).float()
         corr = torch.from_numpy(corr).float()
         label = torch.from_numpy(np.array(label)).long()
+        onehot = torch.from_numpy(onehot).long()
         cnp_label = torch.from_numpy(cnp_label).float()
         cp_label = torch.from_numpy(cp_label).float()
 
-        return {'timeseries': timeseries, 'corr': corr, 'label': label, 'cnp_label': cnp_label, 'cp_label': cp_label}
-     
+        return {'timeseries': timeseries, 'corr': corr, 'label': label, 'onehot': onehot,
+                'cnp_label': cnp_label, 'cp_label': cp_label}
