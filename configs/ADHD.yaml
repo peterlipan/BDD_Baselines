@@ -12,8 +12,7 @@ test_csv: "./datasets/splits/ADHD200_Testing.csv"
 checkpoints: "./checkpoints"
 
 # Model Options
-model: "ComTF"
-
+model: "GraphTransformer"
 
 # Dataset Options
 dataset: "ADHD200"

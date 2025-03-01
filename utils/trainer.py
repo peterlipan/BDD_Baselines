@@ -20,6 +20,7 @@ class Trainer:
 
         self.logger = logger
         self.args = args
+        self.result_csv_name = f"./results_{args.dataset}_{args.task}.csv"
     
     def init_adhd_datasets(self, args):
         train_csv = pd.read_csv(args.train_csv)
@@ -179,6 +180,7 @@ class Trainer:
         if args.rank == 0:
             metrics = self.validate(self.test_loader)
             print(f'Final: {metrics}')
+            self.save_results(args, metrics)
 
     def save_model(self, args):
         state_dict = self.model.module.state_dict() if isinstance(self.model, DDP) else self.model.state_dict()
@@ -195,3 +197,14 @@ class Trainer:
         model_path = os.path.join(args.checkpoints, candidates[-1])
         state_dict = torch.load(model_path)
         self.model.load_state_dict(state_dict)
+
+    def save_results(self, args, metrics):
+        cols = ['Model', 'Dataset', 'Atlas', 'Task', 'Seed'] + list(metrics.keys())
+        if not os.path.exists(self.result_csv_name):
+            results = pd.DataFrame(columns=cols)
+        else:
+            results = pd.read_csv(self.result_csv_name)
+            assert set(results.columns) == set(cols), "Columns mismatch"
+        row = [args.model, args.dataset, args.atlas, args.task, args.seed] + [metrics[key] for key in metrics.keys()]
+        results = results._append(pd.Series(row, index=cols), ignore_index=True)
+        results.to_csv(self.result_csv_name, index=False)

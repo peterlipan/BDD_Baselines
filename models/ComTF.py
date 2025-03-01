@@ -1,7 +1,9 @@
+# Com-BrainTF: https://github.com/ubc-tea/Com-BrainTF
 import torch
 import torch.nn as nn
 from torch.nn import TransformerEncoderLayer
-from .bnt import DEC, InterpretableTransformerEncoder
+from .ptdec import DEC
+from .components import InterpretableTransformerEncoder
 from typing import List
 import pickle
 from .utils import ModelOutputs

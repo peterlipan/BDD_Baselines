@@ -5,6 +5,7 @@ import numpy as np
 from torch.utils.data import Dataset
 from nilearn.connectome import ConnectivityMeasure
 from sklearn.preprocessing import OneHotEncoder
+from .utils import threshold_adjacency_matrices
 
 
 class AbideROIDataset(Dataset):
@@ -85,5 +86,8 @@ class AbideROIDataset(Dataset):
         cnp_label = torch.from_numpy(cnp_label).float()
         cp_label = torch.from_numpy(cp_label).float()
 
+        sparse_connection = corr.clone()
+        sparse_connection.fill_diagonal_(1)
+        
         return {'timeseries': timeseries, 'corr': corr, 'label': label, 'onehot': onehot,
-                'cnp_label': cnp_label, 'cp_label': cp_label}
+                'sparse_connection': sparse_connection, 'cnp_label': cnp_label, 'cp_label': cp_label}

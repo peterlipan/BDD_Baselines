@@ -1,3 +1,6 @@
+import torch
+
+
 class ModelOutputs:
     def __init__(self, features=None, logits=None, **kwargs):
         self.dict = {'features': features, 'logits': logits}
@@ -35,5 +38,9 @@ def get_model(args):
     elif args.model.lower() == 'comtf':
         from .ComTF import ComBrainTF
         return ComBrainTF(args)
+    elif args.model.lower() == 'braingnn':
+        from .braingnn import BrainGNN
+        return BrainGNN(args)
     else:
         raise NotImplementedError
+    
