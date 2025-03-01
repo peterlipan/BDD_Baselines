@@ -29,7 +29,7 @@ class TimeSeriesEncoder(nn.Module):
         num_samples, num_nodes, time_series_length = x.shape
         
         # Reshape x to: (num_samples * num_nodes, time_series_length, 1)
-        x = x.view(num_samples * num_nodes, time_series_length, -1)
+        x = x.reshape(num_samples * num_nodes, time_series_length, -1)
         
         # print(f'after view x.shape={x.shape}')
 

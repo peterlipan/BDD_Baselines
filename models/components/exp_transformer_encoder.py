@@ -15,7 +15,7 @@ from torch.overrides import (
 
 
 class Exp_InterpretableTransformerEncoder(TransformerEncoderLayer):
-    def __init__(self, d_model, nhead, config, dim_feedforward=2048, dropout=0.1, activation=F.relu,
+    def __init__(self, d_model, nhead, dim_feedforward=2048, dropout=0.1, activation=F.relu,
                  layer_norm_eps=1e-5, batch_first=False, norm_first=False,
                  device=None, dtype=None) -> None:
         factory_kwargs = {'device': device, 'dtype': dtype}
@@ -23,9 +23,8 @@ class Exp_InterpretableTransformerEncoder(TransformerEncoderLayer):
                          layer_norm_eps, batch_first, norm_first, device, dtype)
         self.attention_weights: Optional[Tensor] = None
         self.orig_attn: Optional[Tensor] = None
-        self.self_attn = Exp_MultiheadAttention(d_model, nhead, config, dropout=dropout, batch_first=batch_first,
-                                            **factory_kwargs)
-        self.cfg = config    
+        self.self_attn = Exp_MultiheadAttention(d_model, nhead, dropout=dropout, batch_first=batch_first,
+                                            **factory_kwargs)    
 
 
     def _sa_block(self, x: Tensor,
@@ -38,6 +37,8 @@ class Exp_InterpretableTransformerEncoder(TransformerEncoderLayer):
                                     attn_solid_mask=attn_solid_mask)
         self.attention_weights = weights
         self.orig_attn = orig_attn
+
+        self.only_sa_block = False
         
         return self.dropout1(x)
         # return x
@@ -126,7 +127,7 @@ class Exp_InterpretableTransformerEncoder(TransformerEncoderLayer):
         if self.norm_first:
             pass
         else:
-            if not self.cfg.model.only_sa_block:
+            if not self.only_sa_block:
                 x = self.norm1(x + self._sa_block(x, src_mask, src_key_padding_mask, attn_map_bias = attn_map_bias, attn_solid_mask=attn_solid_mask))
                 x = self.norm2(x + self._ff_block(x))
             else:
@@ -139,14 +140,12 @@ class Exp_InterpretableTransformerEncoder(TransformerEncoderLayer):
 
 
 class Exp_MultiheadAttention(nn.MultiheadAttention):
-    def __init__(self, embed_dim, num_heads, config, dropout=0., bias=True, add_bias_kv=False, add_zero_attn=False,
+    def __init__(self, embed_dim, num_heads, dropout=0., bias=True, add_bias_kv=False, add_zero_attn=False,
                  kdim=None, vdim=None, batch_first=False, device=None, dtype=None) -> None:
         
         super().__init__(embed_dim, num_heads, dropout, bias, add_bias_kv, add_zero_attn,
                  kdim, vdim, batch_first, device, dtype)
     
-        self.cfg = config
-
         self.wo_linear = nn.Linear(embed_dim, embed_dim, bias=True) #360->360
         self.wo_linear_concat = nn.Linear(2*embed_dim, embed_dim, bias=True) # 720->360
         self.wo_multihead_attn_concat = nn.Linear(num_heads*embed_dim, embed_dim, bias=True)
@@ -623,37 +622,6 @@ class Exp_MultiheadAttention(nn.MultiheadAttention):
                 attn_output = attn_output.squeeze(1)
                 attn_output_weights = attn_output_weights.squeeze(0)
                 orig_attn = orig_attn.squeeze(0)
-            
-
-            # attn_output = torch.cat((attn_output.transpose(0,1),concat_attention), dim=2) # (16, 360, 720)
-            # attn_output = self.wo_multihead_attn_v_concat(attn_output).transpose(0,1)
-
-
-            # attn_output = self.wo_multihead_attn_concat(concat_attention).transpose(0,1)
-
-            # added directly use attention map as node feature
-            # attn_output_weights = (attn_output_weights + attn_output_weights.transpose(1,2))/2  # symmetric
-            
-            # if self.cfg.model.soft_v == 'add':
-            #     attn_output = attn_output.transpose(0,1) + attn_output_weights  # (16, 360, 360)
-            #     attn_output = self.wo_linear(attn_output)
-          
-            # elif self.cfg.model.soft_v == 'product':
-            #     if self.cfg.model.attn_or_cosine == 'attn':
-            #         attn_output = attn_output.transpose(0,1) * attn_output_weights
-            #     elif self.cfg.model.attn_or_cosine == 'cosine':
-            #         attn_output = attn_output.transpose(0,1) * (attn_output_weights + 1)/2
-
-            #     attn_output = self.wo_linear(attn_output)
-                
-            # elif self.cfg.model.soft_v == 'concat':
-            #     attn_output = torch.cat((attn_output.transpose(0,1), attn_output_weights), dim=2) # (16, 360, 720)
-            #     attn_output = self.wo_linear_concat(attn_output)
-    
-
-            # attn_output = attn_output.transpose(0,1) 
-
-            # attn_output = attn_output_weights.transpose(0,1)
 
             return attn_output, attn_output_weights, orig_attn
         else:
@@ -720,17 +688,7 @@ class Exp_MultiheadAttention(nn.MultiheadAttention):
                 attn = torch.baddbmm(attn_mask, q, k.transpose(-2, -1))
         else:
             attn = torch.bmm(q, k.transpose(-2, -1))
-            # print(f'q.shape={q.shape},k.shape={k.shape},attn.shape={attn.shape}')
 
-        # enhance attention map
-        # if attn_map_bias is not None:
-        #     num_heads = int(attn.shape[0]/attn_map_bias.shape[0])
-        #     attn_map_bias = attn_map_bias.repeat_interleave(num_heads, dim=0)
-        #     attn += attn_map_bias   # attn shape (num_heads * bz, num_nodes, num_nodes)
-        
-        
-        # controlling the attention field by a solid mask, which decides the sparsity of the graph
-        # attn_solid_mask only has 0 or - infinity value
         num_heads = int(attn.shape[0]/attn_solid_mask.shape[0])
         attn_solid_mask = attn_solid_mask.repeat_interleave(num_heads, dim=0)
         attn += attn_solid_mask  

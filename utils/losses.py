@@ -64,7 +64,7 @@ def braingnn_loss(output, w1, w2, s1, s2, label):
 
 
         for c in range(2):
-            loss_consist += consist_loss(s1[label[:,1] == c])
+            loss_consist += consist_loss(s1[label == c])
 
         loss = major_loss + 0.1 * loss_tpk1 + 0.1 * loss_tpk2 + 0.1 * loss_consist
         

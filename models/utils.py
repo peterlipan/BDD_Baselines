@@ -41,6 +41,12 @@ def get_model(args):
     elif args.model.lower() == 'braingnn':
         from .braingnn import BrainGNN
         return BrainGNN(args)
+    elif args.model.lower() == 'braingb':
+        from .braingb import BrainGB
+        return BrainGB(args)
+    elif args.model.lower() == 'dpm':
+        from .dual_pathway import mixed_model
+        return mixed_model(args)
     else:
         raise NotImplementedError
     

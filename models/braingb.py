@@ -10,6 +10,7 @@ from torch_geometric.nn import GCNConv
 from torch import nn
 import torch_geometric
 import math
+from .utils import ModelOutputs
 
 
 class MPGCNConv(GCNConv):
@@ -72,22 +73,20 @@ class MPGCNConv(GCNConv):
 
         
 class BrainGB(torch.nn.Module):
-    def __init__(self, config):
-        super(BrainGB, self).__init__()
+    def __init__(self, args):
+        super().__init__()
 
-        print(f'Using BrainGB model..')
-        self.cfg = config
         self.activation = torch.nn.ReLU()
         self.convs = torch.nn.ModuleList()
-        self.pooling = self.cfg.model.pooling
-        self.num_nodes = self.cfg.dataset.node_sz
+        self.pooling = 'concat'
+        self.num_nodes = args.num_roi
 
-        hidden_dim = self.cfg.model.hidden_dim
-        num_layers = self.cfg.model.n_GNN_layers
-        edge_emb_dim = self.cfg.model.edge_emb_dim
-        gcn_mp_type = self.cfg.model.gcn_mp_type
-        bucket_sz = self.cfg.model.bucket_sz
-        gcn_input_dim = self.cfg.dataset.node_feature_dim
+        hidden_dim = 256
+        num_layers = 2
+        edge_emb_dim = 256
+        gcn_mp_type = 'node_concate'
+        bucket_sz = 0.05
+        gcn_input_dim = args.num_roi
 
         for i in range(num_layers-1):
             conv = torch_geometric.nn.Sequential('x, edge_index, edge_attr', [
@@ -127,7 +126,7 @@ class BrainGB(torch.nn.Module):
 
         self.convs.append(conv)
 
-        fc_output_dim = 2 if self.cfg.dataset.task == 'classification' else 1
+        fc_output_dim = 2
 
         self.fcn = nn.Sequential(
             nn.Linear(input_dim, 256),
@@ -139,7 +138,9 @@ class BrainGB(torch.nn.Module):
         )
 
 
-    def forward(self, m, node_feature):
+    def forward(self, data):
+        m = data['sparse_connection']
+        node_feature = data['corr']
         x, edge_index, batch, edge_attr, _ = self.transform_data(m, node_feature)
 
         z = x
@@ -155,8 +156,8 @@ class BrainGB(torch.nn.Module):
         elif self.pooling == 'mean':
             z = global_mean_pool(z, batch)  # [N, F]
 
-        out = self.fcn(z)  
-        return out
+        logits = self.fcn(z)  
+        return ModelOutputs(logits=logits, features=z)
 
         
 

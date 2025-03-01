@@ -16,7 +16,7 @@ class GraphTransformer(nn.Module):
 
         for _ in range(2):
             self.attention_list.append(
-                TransformerEncoderLayer(d_model=args.num_roi, nhead=3, dim_feedforward=1024,
+                TransformerEncoderLayer(d_model=args.num_roi, nhead=args.n_heads, dim_feedforward=1024,
                                         batch_first=True)
             )
 

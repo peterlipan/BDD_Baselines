@@ -104,7 +104,7 @@ class ComBrainTF(nn.Module):
 
         self.attention_list = nn.ModuleList()
         forward_dim = args.num_roi
-        n_head = 9
+        n_head = args.n_heads
 
 
         self.num_MHSA = 1 # default

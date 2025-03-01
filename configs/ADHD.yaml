@@ -12,7 +12,8 @@ test_csv: "./datasets/splits/ADHD200_Testing.csv"
 checkpoints: "./checkpoints"
 
 # Model Options
-model: "GraphTransformer"
+model: "DPM"
+n_heads: 3
 
 # Dataset Options
 dataset: "ADHD200"
@@ -23,7 +24,7 @@ cp: "Gender, Med Status"
 
 # Training Options
 seed: 42
-batch_size: 30
+batch_size: 30 # BrainGB requires a smaller batch size 20
 epochs: 100
 
 # Optimization options

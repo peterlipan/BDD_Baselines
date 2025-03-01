@@ -41,14 +41,14 @@ class BrainGNN(torch.nn.Module):
         '''
         super().__init__()
 
-        self.indim = 200
+        self.indim = args.num_roi
         self.dim1 = 32
         self.dim2 = 32
         self.dim3 = 512
         self.dim4 = 256
         self.dim5 = 8
         self.k = 8
-        self.R = 200
+        self.R = args.num_roi
         
 
         self.n1 = nn.Sequential(nn.Linear(self.R, self.k, bias=False), nn.ReLU(), nn.Linear(self.k, self.dim1 * self.indim))
@@ -70,11 +70,14 @@ class BrainGNN(torch.nn.Module):
 
 
 
-    def forward(self, m, node_feature):
+    def forward(self, data):
         '''
         m: adjacency matrix   (bz, num_nodes, num_nodes)
         node_feature: node feature  (bz, num_nodes, feature_dim)
         '''
+
+        m = data['sparse_connection']
+        node_feature = data['corr']
 
         x, edge_index, batch, edge_attr, pos = self.transform_data(m, node_feature)
 
@@ -455,7 +458,6 @@ import os
 
 
 import numpy as np
-import matplotlib.pyplot as plt 
 import torch.utils.data as utils
 from torch.utils.data import Subset
 import torch.optim as optim

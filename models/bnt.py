@@ -18,9 +18,9 @@ class TransPoolingEncoder(nn.Module):
     Output size: (batch_size, output_node_num, input_feature_size)
     """
 
-    def __init__(self, input_feature_size, input_node_num, hidden_size, output_node_num, pooling=True, orthogonal=True, freeze_center=False, project_assignment=True):
+    def __init__(self, input_feature_size, input_node_num, hidden_size, n_heads, output_node_num, pooling=True, orthogonal=True, freeze_center=False, project_assignment=True):
         super().__init__()
-        self.transformer = InterpretableTransformerEncoder(d_model=input_feature_size, nhead=3,
+        self.transformer = InterpretableTransformerEncoder(d_model=input_feature_size, nhead=n_heads,
                                                            dim_feedforward=hidden_size,
                                                            batch_first=True)
 
@@ -64,6 +64,7 @@ class BrainNetworkTransformer(nn.Module):
 
         self.attention_list = nn.ModuleList()
         forward_dim = args.num_roi
+        n_heads = args.n_heads
 
         self.pos_encoding = None
         if self.pos_encoding == 'identity':
@@ -82,6 +83,7 @@ class BrainNetworkTransformer(nn.Module):
                 TransPoolingEncoder(input_feature_size=forward_dim,
                                     input_node_num=in_sizes[index],
                                     hidden_size=1024,
+                                    n_heads=n_heads,
                                     output_node_num=size,
                                     pooling=do_pooling[index],
                                     orthogonal=True,
