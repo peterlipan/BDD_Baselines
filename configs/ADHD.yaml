@@ -12,8 +12,8 @@ test_csv: "./datasets/splits/ADHD200_Testing.csv"
 checkpoints: "./checkpoints"
 
 # Model Options
-model: "DPM"
-n_heads: 3
+model: "GRU"
+n_heads: 9
 
 # Dataset Options
 dataset: "ADHD200"

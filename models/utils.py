@@ -47,6 +47,15 @@ def get_model(args):
     elif args.model.lower() == 'dpm':
         from .dual_pathway import mixed_model
         return mixed_model(args)
+    elif args.model.lower() == 'lstm':
+        from .lstm import LSTM
+        return LSTM(args)
+    elif args.model.lower() == 'transformer':
+        from .ValinaTF import Transformer
+        return Transformer(args)
+    elif args.model.lower() == 'gru':
+        from .gru import GRU
+        return GRU(args)
     else:
         raise NotImplementedError
     

@@ -50,6 +50,15 @@ if __name__ == '__main__':
     # set number of rois according to the atlas
     atlas2roi = {'cc400': 392, 'ho': 111, 'cc200': 200} if 'ABIDE' in args.dataset else {'cc400': 351}
     args.num_roi = atlas2roi[args.atlas]
+    head_list = [8, 9, 4, 2, 3]
+    args.n_heads = [head_list[i] for i in range(len(head_list)) if args.num_roi % head_list[i] == 0][0]
+    args.batch_size = 20 if args.model.lower() == 'braingb' else args.batch_size
+
+    print('#' * 50)
+    print(f"Dataset: {args.dataset}")
+    print(f"Atlas: {args.atlas}")
+    print(f"Model: {args.model}")
+    print('#' * 50)
 
     # check checkpoints path
     if not os.path.exists(args.checkpoints):
