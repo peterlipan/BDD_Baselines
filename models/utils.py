@@ -59,6 +59,9 @@ def get_model(args):
     elif args.model.lower() == 'meanmlp':
         from .meanMLP import meanMLP
         return meanMLP(args)
+    elif args.model.lower() == 'bolt':
+        from .bolT import BolT
+        return BolT(args)
     else:
         raise NotImplementedError
     

@@ -11,7 +11,7 @@ csv_path: "./datasets/splits"
 checkpoints: "./checkpoints"
 
 # Model Options
-model: "BrainNetCNN"
+model: "BolT"
 n_heads: 9
 
 # Dataset Options

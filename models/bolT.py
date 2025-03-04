@@ -5,26 +5,15 @@ from random import uniform, randint
 import torch
 from torch import nn, randperm as rp
 import numpy as np
-import pandas as pd
-import wandb
 from einops import rearrange, repeat
 from timm.models.layers import trunc_normal_
 import math
 import time
-from tqdm import tqdm
-from apto.utils.report import get_classification_report
-from omegaconf import OmegaConf, DictConfig
-
-from torch.utils.data import DataLoader
-from omegaconf import open_dict
-import gc
-from src.trainer import BasicTrainer
-
-def get_model(cfg: DictConfig, model_cfg: DictConfig):
-    return BolT(model_cfg)
+from omegaconf import OmegaConf
+from .utils import ModelOutputs
 
 
-def default_HPs(cfg: DictConfig):
+def default_HPs(args):
     model_cfg = {
         "weightDecay" : 0,
 
@@ -35,9 +24,7 @@ def default_HPs(cfg: DictConfig):
         # FOR BOLT
         "nOfLayers" : 4,
         # "dim" : 400,
-        "dim" : cfg.dataset.data_info.main.data_shape[
-            2
-        ],
+        "dim" : args.num_roi,
 
         "numHeads" : 36,
         "headDim" : 20,
@@ -56,152 +43,18 @@ def default_HPs(cfg: DictConfig):
         # extra for ablation study
         "pooling" : "cls", # ["cls", "gmp"]         
 
-        "input_size": cfg.dataset.data_info.main.data_shape[
-            2
-        ],  # data_shape: [batch_size, time_length, input_feature_size]
-        "output_size": 2,
+        "input_size": args.num_roi,  # data_shape: [batch_size, time_length, input_feature_size]
+        "output_size": 2, # default for DX tasks
     }
     return OmegaConf.create(model_cfg)
 
-def get_criterion(cfg: DictConfig, model_cfg: DictConfig):
-    return bolTLoss(model_cfg)
-
-class bolTLoss:
-    """Cross-entropy loss with model regularization"""
-
-    def __init__(self, model_cfg):
-        self.ce_loss = nn.CrossEntropyLoss()
-
-        self.lambdaCons = model_cfg.lambdaCons
-
-    def __call__(self, logits, target, cls):
-        clsLoss = torch.mean(torch.square(cls - cls.mean(dim=1, keepdims=True)))
-
-        cross_entropy_loss = self.ce_loss(logits, target)
-
-        return cross_entropy_loss + clsLoss * self.lambdaCons
-
-def get_scheduler(cfg: DictConfig, model_cfg: DictConfig, optimizer):
-    divFactor = model_cfg.maxLr / model_cfg.lr
-    finalDivFactor = model_cfg.lr / model_cfg.minLr
-    scheduler = torch.optim.lr_scheduler.OneCycleLR(optimizer, model_cfg.maxLr, cfg.mode.max_epochs * cfg.dataloader.train.n_batches, div_factor=divFactor, final_div_factor=finalDivFactor, pct_start=0.3)
-    return scheduler
-
-def get_trainer(
-    cfg, model_cfg, dataloaders, model, criterion, optimizer, scheduler, logger
-):
-    return BolTTrainer(cfg, model_cfg, dataloaders, model, criterion, optimizer, scheduler, logger)
-
-class BolTTrainer(BasicTrainer):
-    """BolTTrainer trainer. Different from BasicTrainer at the scheduler step position"""
-    
-    def __init__(self, cfg, model_cfg, dataloaders, model, criterion, optimizer, scheduler, logger):
-        super().__init__(cfg, model_cfg, dataloaders, model, criterion, optimizer, scheduler, logger)
-
-    def run_epoch(self, ds_name):
-        """Run single epoch and monitor OutOfMemoryError"""
-        impatience = 0
-        while True:
-            try:
-                metrics = self.run_epoch_for_real(ds_name)
-            except torch.cuda.OutOfMemoryError as e:
-                if impatience > 5:
-                    raise torch.cuda.OutOfMemoryError(
-                        "Can't fix CUDA out of memory exception"
-                    ) from e
-
-                impatience += 1
-                print("CUDA OOM encountered, reducing batch_size and cleaning memory")
-
-                # run garbage collector and empty cache
-                gc.collect()
-                torch.cuda.empty_cache()
-
-                # reduce batch_size
-                batch_size = self.cfg.mode.batch_size // 2
-                dataloader_info = {}
-                for key, dl in self.dataloaders.items():
-                    dataset = dl.dataset
-                    self.dataloaders[key] = DataLoader(
-                        dataset,
-                        batch_size=batch_size,
-                        num_workers=0,
-                        shuffle=key == "train",
-                    )
-                    dataloader_info[key] = {
-                        "n_samples": len(dl.dataset),
-                        "batch_size": dl.batch_size,
-                        "n_batches": math.ceil(len(dl.dataset)/dl.batch_size)
-                    }
-                with open_dict(self.cfg):
-                    self.cfg.mode.batch_size = batch_size
-                    self.cfg.dataloader = dataloader_info
-
-                self.scheduler = get_scheduler(self.cfg, self.model_cfg, self.optimizer)
-                    
-                # try to run the epoch again
-                continue
-
-            # no errors encountered, exiting loop
-            break
-
-        return metrics
-    
-    def run_epoch_for_real(self, ds_name):
-        """Run single epoch on `ds_name` dataloder"""
-        is_train_dataset = ds_name == "train"
-
-        all_scores, all_targets = [], []
-        total_loss, total_size = 0.0, 0
-
-        self.model.train(is_train_dataset)
-        start_time = time.time()
-
-        with torch.set_grad_enabled(is_train_dataset):
-            for data, target in self.dataloaders[ds_name]:
-                # permute TS data if needed
-                if is_train_dataset and self.permute:
-                    for i, sample in enumerate(data):
-                        data[i] = sample[rp(sample.shape[0]), :]
-
-                data, target = data.to(self.device), target.to(self.device)
-                total_size += data.shape[0]
-
-                logits, cls = self.model(data)
-                loss = self.criterion(logits, target, cls)
-                score = torch.softmax(logits, dim=-1)
-
-                all_scores.append(score.cpu().detach().numpy())
-                all_targets.append(target.cpu().detach().numpy())
-                total_loss += loss.sum().item()
-
-                if is_train_dataset:
-                    self.do_update(loss)
-
-        average_time = (time.time() - start_time) / total_size
-        average_loss = total_loss / total_size
-
-        y_test = np.hstack(all_targets)
-        y_score = np.vstack(all_scores)
-        y_pred = np.argmax(y_score, axis=-1).astype(np.int32)
-
-        report = get_classification_report(
-            y_true=y_test, y_pred=y_pred, y_score=y_score, beta=0.5
-        )
-
-        metrics = {
-            ds_name + "_accuracy": report["precision"].loc["accuracy"],
-            ds_name + "_score": report["auc"].loc["weighted"],
-            ds_name + "_average_loss": average_loss,
-            ds_name + "_average_time": average_time,
-        }
-
-        return metrics
 
 class BolT(nn.Module):
-    def __init__(self, hyperParams):
+    def __init__(self, args):
 
         super().__init__()
+
+        hyperParams = default_HPs(args)
 
         dim = hyperParams.dim
         # nOfClasses = details.nOfClasses
@@ -225,8 +78,6 @@ class BolT(nn.Module):
                 receptiveSize = hyperParams.windowSize + math.ceil(hyperParams.windowSize * 2 * i * hyperParams.fringeCoeff * (1-hyperParams.shiftCoeff))
             elif(hyperParams.focalRule == "fixed"):
                 receptiveSize = hyperParams.windowSize + math.ceil(hyperParams.windowSize * 2 * 1 * hyperParams.fringeCoeff * (1-hyperParams.shiftCoeff))
-
-            print("receptiveSize per window for layer {} : {}".format(i, receptiveSize))
 
             self.receptiveSizes.append(receptiveSize)
 
@@ -304,7 +155,7 @@ class BolT(nn.Module):
         return macs, np.sum(macs) * 2 # FLOPS = 2 * MAC
 
 
-    def forward(self, roiSignals, analysis=False):
+    def forward(self, data, analysis=False):
         
         """
             Input : 
@@ -322,6 +173,8 @@ class BolT(nn.Module):
         # roiSignals is actually [batch_size, time_length, input_feature_size] in our code
 
         # roiSignals = roiSignals.permute((0,2,1))
+
+        roiSignals = data['timeseries']
 
         batchSize = roiSignals.shape[0]
         T = roiSignals.shape[1] # dynamicLength
@@ -355,7 +208,7 @@ class BolT(nn.Module):
 
         torch.cuda.empty_cache()
 
-        return logits, cls
+        return ModelOutputs(logits=logits, cls=cls)
     
 
 
@@ -640,7 +493,6 @@ class WindowAttention(nn.Module):
         x = self.projDrop(x)
         
         return x
-
 
 
 class FusedWindowTransformer(nn.Module):

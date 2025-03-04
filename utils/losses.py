@@ -2,6 +2,22 @@ import torch
 import torch.nn as nn
 
 
+class bolTLoss:
+    """Cross-entropy loss with model regularization"""
+
+    def __init__(self):
+        self.ce_loss = nn.CrossEntropyLoss()
+
+        self.lambdaCons = 1 # default value
+
+    def __call__(self, logits, target, cls):
+        clsLoss = torch.mean(torch.square(cls - cls.mean(dim=1, keepdims=True)))
+
+        cross_entropy_loss = self.ce_loss(logits, target)
+
+        return cross_entropy_loss + clsLoss * self.lambdaCons
+
+
 def mixup_cluster_loss(matrixs, y, intra_weight=2):
 
     y_1 = y[:, 1].float()
@@ -76,6 +92,7 @@ class LossFunction(nn.Module):
         super().__init__()
         self.ce = nn.CrossEntropyLoss()
         self.model = args.model
+        self.bolt_loss = bolTLoss() if self.model.lower() == 'bolt' else None
     
     def forward(self, outputs, data):
         if self.model.lower() == 'fbnetgen':
@@ -84,6 +101,8 @@ class LossFunction(nn.Module):
             loss += 1.0e-4 * torch.norm(outputs.learnable_matrix, p=1)
         elif self.model.lower() == 'braingnn':
             loss = braingnn_loss(outputs.logits, outputs.w1, outputs.w2, outputs.s1, outputs.s2, data['label'])
+        elif self.model.lower() == 'bolt':
+            loss = self.bolt_loss(outputs.logits, data['label'], outputs.cls)
         else:
             loss = self.ce(outputs.logits, data['label'])
         return loss
