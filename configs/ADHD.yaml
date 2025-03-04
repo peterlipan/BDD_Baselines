@@ -2,30 +2,29 @@
 nodes: 1
 gpus: 4
 nr: 0
-workers: 0
+workers: 8
 visible_gpus: "0,1,2,3"
 
 # Paths
 data_root: "/home/r20user17/Documents/ADHD200"
-train_csv: "./datasets/splits/ADHD200_Training.csv"
-test_csv: "./datasets/splits/ADHD200_Testing.csv"
+csv_path: "./datasets/splits"
 checkpoints: "./checkpoints"
 
 # Model Options
-model: "GRU"
+model: "BrainNetCNN"
 n_heads: 9
 
 # Dataset Options
 dataset: "ADHD200"
 task: "DX"
-atlas: "cc400"
+atlas: "ho"
 cnp: "Age, Performance IQ"
 cp: "Gender, Med Status"
 
 # Training Options
 seed: 42
 batch_size: 30 # BrainGB requires a smaller batch size 20
-epochs: 100
+epochs: 20
 
 # Optimization options
 optimizer: "Adam"

@@ -32,7 +32,7 @@ def main(gpu, args, wandb_logger):
 if __name__ == '__main__':
     # args
     parser = argparse.ArgumentParser()
-    yaml_config = yaml_config_hook("./configs/ADHD.yaml")
+    yaml_config = yaml_config_hook("./configs/ABIDEI_DX.yaml")
     for k, v in yaml_config.items():
         parser.add_argument(f"--{k}", default=v, type=type(v))
 
@@ -45,15 +45,16 @@ if __name__ == '__main__':
     # Master address for distributed data parallel
     os.environ["CUDA_VISIBLE_DEVICES"] = args.visible_gpus
     os.environ['MASTER_ADDR'] = 'localhost'
-    os.environ['MASTER_PORT'] = '6666'
+    os.environ['MASTER_PORT'] = '8888'
 
     # set number of rois according to the atlas
-    atlas2roi = {'cc400': 392, 'ho': 111, 'cc200': 200} if 'ABIDE' in args.dataset else {'cc400': 351}
+    atlas2roi = {'cc400': 392, 'ho': 111, 'cc200': 200, 'aal': 116} if 'ABIDE' in args.dataset else {'cc400': 351}
     args.num_roi = atlas2roi[args.atlas]
-    head_list = [8, 9, 4, 2, 3]
+    head_list = [8, 9, 6, 7, 4, 2, 3, 1]
     args.n_heads = [head_list[i] for i in range(len(head_list)) if args.num_roi % head_list[i] == 0][0]
     args.batch_size = 20 if args.model.lower() == 'braingb' else args.batch_size
-
+    torch.autograd.set_detect_anomaly(True)
+    
     print('#' * 50)
     print(f"Dataset: {args.dataset}")
     print(f"Atlas: {args.atlas}")

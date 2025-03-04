@@ -15,7 +15,7 @@ class E2EBlock(torch.nn.Module):
     def forward(self, x):
         a = self.cnn1(x)
         b = self.cnn2(x)
-        return torch.cat([a]*self.d, 3)+torch.cat([b]*self.d, 2)
+        return torch.cat([a]*self.d, 3) + torch.cat([b]*self.d, 2)
 
 
 class BrainNetCNN(torch.nn.Module):
@@ -23,6 +23,7 @@ class BrainNetCNN(torch.nn.Module):
         super().__init__()
         self.in_planes = 1
         self.d = args.num_roi # cfg.dataset.node_sz
+
 
         self.e2econv1 = E2EBlock(1, 32, args.num_roi, bias=True)
         self.e2econv2 = E2EBlock(32, 64, args.num_roi, bias=True)

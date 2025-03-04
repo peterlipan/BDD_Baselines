@@ -56,6 +56,9 @@ def get_model(args):
     elif args.model.lower() == 'gru':
         from .gru import GRU
         return GRU(args)
+    elif args.model.lower() == 'meanmlp':
+        from .meanMLP import meanMLP
+        return meanMLP(args)
     else:
         raise NotImplementedError
     

@@ -71,6 +71,8 @@ class AbideROIDataset(Dataset):
         cnp_label = self.cnp_fea[idx]
         cp_label = self.cp_fea[idx]
         file_path = os.path.join(self.data_root, self.filenames[idx] + self.suffix)
+        if not os.path.exists(file_path):
+            raise FileNotFoundError(f"File not found: {file_path}")
         timeseries = np.loadtxt(file_path, skiprows=0) # [T, N]
         measure = ConnectivityMeasure(kind='correlation')
         corr = measure.fit_transform([timeseries])[0]

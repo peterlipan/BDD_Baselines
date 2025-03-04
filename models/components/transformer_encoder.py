@@ -6,10 +6,10 @@ import torch.nn.functional as F
 
 class InterpretableTransformerEncoder(TransformerEncoderLayer):
     def __init__(self, d_model, nhead, dim_feedforward=2048, dropout=0.1, activation=F.relu,
-                 layer_norm_eps=1e-5, batch_first=False, norm_first=False,
+                 layer_norm_eps=1e-5, batch_first=False, norm_first=False, bias=True,
                  device=None, dtype=None) -> None:
         super().__init__(d_model, nhead, dim_feedforward, dropout, activation,
-                         layer_norm_eps, batch_first, norm_first, device, dtype)
+                         layer_norm_eps, batch_first, norm_first, bias, device, dtype)
         self.attention_weights: Optional[Tensor] = None
 
     def _sa_block(self, x: Tensor,

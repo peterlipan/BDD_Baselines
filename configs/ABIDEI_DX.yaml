@@ -2,8 +2,8 @@
 nodes: 1
 gpus: 4
 nr: 0
-workers: 0
-visible_gpus: "0,1,2,3"
+workers: 8
+visible_gpus: "4,5,6,7"
 
 # Paths
 data_root: "/home/r20user17/Documents/ABIDE_pcp/cpac/filt_noglobal"
@@ -13,7 +13,8 @@ val_csv: "./datasets/splits/ABIDE_Validation.csv"
 checkpoints: "./checkpoints"
 
 # Model Options
-model: "GraphTransformer"
+model: "BNT"
+n_heads: 9
 
 # Dataset Options
 dataset: "ABIDE_BNT"
@@ -25,7 +26,7 @@ cp: "SEX, HANDEDNESS_CATEGORY, CURRENT_MED_STATUS"
 # Training Options
 seed: 42
 batch_size: 30
-epochs: 100
+epochs: 20
 
 # Optimization options
 optimizer: "Adam"

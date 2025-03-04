@@ -23,8 +23,10 @@ class Trainer:
         self.result_csv_name = f"./results_{args.dataset}_{args.task}.csv"
     
     def init_adhd_datasets(self, args):
-        train_csv = pd.read_csv(args.train_csv)
-        test_csv = pd.read_csv(args.test_csv)
+        train_csv_path = os.path.join(args.csv_path, f"ADHD200_{args.atlas}_Training.csv")
+        test_csv_path = os.path.join(args.csv_path, f"ADHD200_{args.atlas}_Testing.csv")
+        train_csv = pd.read_csv(train_csv_path)
+        test_csv = pd.read_csv(test_csv_path)
         self.train_dataset = AdhdROIDataset(train_csv, args.data_root, atlas=args.atlas,
                                             cp=args.cp, cnp=args.cnp, task=args.task)
 
@@ -161,14 +163,15 @@ class Trainer:
                         cur_lr = self.optimizer.param_groups[0]['lr']
                         test_metrics = self.validate(self.test_loader)
                         val_metrics = self.validate(self.val_loader) if self.val_loader is not None else {'Accuracy': 0.0}
-                        print(f'Epoch: {epoch}, Iter: {cur_iter}, LR: {cur_lr}, Acc: {test_metrics['Accuracy']}')
+                        accuracy = test_metrics.get('Accuracy', 0.0)
+                        print(f'Epoch: {epoch}, Iter: {cur_iter}, LR: {cur_lr}, Acc: {accuracy}')
                         if self.logger is not None:
                             self.logger.log({'test': test_metrics, 'val': val_metrics,
                                              'train': {
                                                  'lr': cur_lr,
                                                 'loss': loss.item(),}})
-        if args.rank == 0:
-            self.save_model(args)
+        # if args.rank == 0:
+            # self.save_model(args)
 
     def run(self, args):
         if 'ABIDE' in args.dataset:
