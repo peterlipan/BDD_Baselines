@@ -4,7 +4,7 @@ __pycache__/
 *$py.class
 
 # CSV files
-*.csv
+# *.csv
 
 # wandb
 wandb/
