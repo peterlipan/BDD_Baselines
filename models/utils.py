@@ -62,6 +62,9 @@ def get_model(args):
     elif args.model.lower() == 'bolt':
         from .bolT import BolT
         return BolT(args)
+    elif args.model.lower() == 'dice':
+        from .DICE import DICE
+        return DICE(args)
     else:
         raise NotImplementedError
     
