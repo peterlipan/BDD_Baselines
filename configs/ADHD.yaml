@@ -11,13 +11,13 @@ csv_path: "./datasets/splits"
 checkpoints: "./checkpoints"
 
 # Model Options
-model: "DICE"
+model: "ComTF"
 n_heads: 9
 
 # Dataset Options
 dataset: "ADHD200"
 task: "DX"
-atlas: "ho"
+atlas: "cc200"
 cnp: "Age, Performance IQ"
 cp: "Gender, Med Status"
 
