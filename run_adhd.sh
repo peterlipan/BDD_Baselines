@@ -1,8 +1,8 @@
 #!/bin/bash
 
 # Define the models and seeds
-models=("meanMLP" "bolT" "DICE" "Glacier")
-seeds=(1 42 123 456 789)
+models=("ComTF" "bolT" "DICE" "Glacier")
+seeds=(123 456 789)
 atlases=("cc400" "ho" "cc200")
 
 # Iterate over each model and seed
