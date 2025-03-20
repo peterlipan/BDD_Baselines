@@ -45,7 +45,7 @@ if __name__ == '__main__':
     # Master address for distributed data parallel
     os.environ["CUDA_VISIBLE_DEVICES"] = args.visible_gpus
     os.environ['MASTER_ADDR'] = 'localhost'
-    os.environ['MASTER_PORT'] = '6666'
+    os.environ['MASTER_PORT'] = '12345'
 
     # set number of rois according to the atlas
     atlas2roi = {'cc400': 392, 'ho': 111, 'cc200': 200} if 'ABIDE' in args.dataset else {'cc400': 351, 'cc200': 190, 'ho': 111, 'aal': 116}

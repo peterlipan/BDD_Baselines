@@ -116,6 +116,7 @@ class Trainer:
             self.model = DDP(self.model, device_ids=[args.rank], static_graph=True)
 
     def validate(self, loader):
+        training = self.model.training
         self.model.eval()
         ground_truth = torch.Tensor().cuda()
         predictions = torch.Tensor().cuda()
@@ -128,7 +129,7 @@ class Trainer:
                 predictions = torch.cat((predictions, pred))
             
             metric = compute_avg_metrics(ground_truth, predictions, avg='micro')
-        self.model.train()
+        self.model.train(training)
         return metric
 
     def train(self, args):
@@ -151,14 +152,17 @@ class Trainer:
                         if p.grad is not None:
                             dist.all_reduce(p.grad.data, op=dist.ReduceOp.SUM)
                             p.grad.data /= dist.get_world_size()
-                nn.utils.clip_grad_norm_(self.model.parameters(), max_norm=5.0)
+                nn.utils.clip_grad_norm_(self.model.parameters(), max_norm=5.0)                
 
                 self.optimizer.step()
 
                 if self.scheduler is not None:
                     self.scheduler.step()
+
                 cur_iter += 1
-                if cur_iter % 10 == 1:
+                if cur_iter % 20 == 1:
+                    if dist.is_available() and dist.is_initialized():
+                        dist.barrier()
                     if args.rank == 0:
                         cur_lr = self.optimizer.param_groups[0]['lr']
                         test_metrics = self.validate(self.test_loader)
@@ -173,6 +177,7 @@ class Trainer:
         # if args.rank == 0:
             # self.save_model(args)
 
+
     def run(self, args):
         if 'ABIDE' in args.dataset:
             self.init_abide_datasets(args)
@@ -180,6 +185,8 @@ class Trainer:
             self.init_adhd_datasets(args)
         self.init_model(args)
         self.train(args)
+        if dist.is_available() and dist.is_initialized():
+            dist.barrier()
         if args.rank == 0:
             metrics = self.validate(self.test_loader)
             print(f'Final: {metrics}')

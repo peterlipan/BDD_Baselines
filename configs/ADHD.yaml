@@ -1,17 +1,17 @@
 # distributed training
 nodes: 1
-gpus: 4
+gpus: 2
 nr: 0
-workers: 8
-visible_gpus: "0,1,2,3"
+workers: 4
+visible_gpus: "0,1"
 
 # Paths
-data_root: "/home/r20user17/Documents/ADHD200"
+data_root: "/home/featurize/work/PanLI_2024_7_30/ADHD200"
 csv_path: "./datasets/splits"
 checkpoints: "./checkpoints"
 
 # Model Options
-model: "ComTF"
+model: "DICE"
 n_heads: 9
 
 # Dataset Options
@@ -24,13 +24,13 @@ cp: "Gender, Med Status"
 # Training Options
 seed: 42
 batch_size: 30 # BrainGB requires a smaller batch size 20
-epochs: 20
+epochs: 100
 
 # Optimization options
 optimizer: "Adam"
 pcgrad: False
 lr: 1.0e-4
 dropout: 0.5
-weight_decay: 0.01
+weight_decay: 0.1
 warmup_epochs: 10
 scheduler: False

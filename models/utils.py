@@ -65,6 +65,9 @@ def get_model(args):
     elif args.model.lower() == 'dice':
         from .DICE import DICE
         return DICE(args)
+    elif args.model.lower() == 'glacier':
+        from .glacier import Glacier
+        return Glacier(args)
     else:
         raise NotImplementedError
     

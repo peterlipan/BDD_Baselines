@@ -1,9 +1,9 @@
 #!/bin/bash
 
 # Define the models and seeds
-models=("BrainNetCNN" "graphtransformer" "bnt" "fbnetgen" "comtf" "braingnn" "braingb" "dpm" "lstm" "transformer" "gru" "meanMLP")
+models=("meanMLP" "bolT" "DICE" "Glacier")
 seeds=(1 42 123 456 789)
-atlases=("ho" "cc200")
+atlases=("cc400" "ho" "cc200")
 
 # Iterate over each model and seed
 for model in "${models[@]}"; do

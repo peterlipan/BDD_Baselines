@@ -7,6 +7,7 @@ from .components import InterpretableTransformerEncoder
 from typing import List
 import pickle
 from .utils import ModelOutputs
+import numpy as np
 
 
 class TransPoolingEncoder(nn.Module):
@@ -173,22 +174,17 @@ class ComBrainTF(nn.Module):
         )
 
         with open('node_clus_map.pickle', 'rb') as handle:
-            self.node_clus_map = pickle.load(handle)
+            self.node_clus_map = pickle.load(handle) # only feasible for ABIDE cc200
 
-        orig_len = [41, 70, 91, 110, 130, 137, 158, 200]
-        feasible_idx = [item for item in orig_len if item < forward_dim]
-
-        if len(feasible_idx) == len(orig_len):
-            feasible_idx[-1] = forward_dim
-            self.node_clus_map.update({i: 7 for i in range(feasible_idx[-2], feasible_idx[-1])})
+        if forward_dim != 200:
+            # lazy implementation: randomly split the nodes into 8 communities for other atlas
+            np.random.seed(args.seed)
+            self.node_clus_map = {i: np.random.randint(0, 8) for i in range(forward_dim)}
+            self.node_rearranged_len = [len([k for k, v in self.node_clus_map.items() if v == i]) for i in range(8)]
+            self.node_rearranged_len = np.cumsum(self.node_rearranged_len).tolist()
         else:
-            feasible_idx.append(forward_dim)
-            for i in range(forward_dim - 1, 200):
-                self.node_clus_map.pop(i, None)
-            max_group = max(self.node_clus_map.values())
-            self.node_clus_map.update({i: max_group + 1 for i in range(feasible_idx[-2], feasible_idx[-1])})
-        self.node_rearranged_len = feasible_idx
-        # lazy implementation: assign the nodes not in the dict as the last community
+            self.node_rearranged_len = [41, 70, 91, 110, 130, 137, 158, 200]
+        
         
 
     def rearrange_node_feature(self, node_feature_rearranged, node_feature, rearranged_indices):
