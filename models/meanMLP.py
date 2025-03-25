@@ -21,27 +21,30 @@ class meanMLP(nn.Module):
     def __init__(self, args):
         super().__init__()
 
-        input_size = args.num_roi
         output_size = 2 # default for DX tasks
         dropout = 0.49
         hidden_size = 160
 
+        self.hidden_size = hidden_size
+        self.input_size = args.num_roi if args.fusion != 'early' else args.num_roi + args.num_phe
+
         layers = [
-            nn.Linear(input_size, hidden_size),
+            nn.Linear(self.input_size, hidden_size),
             nn.LayerNorm(hidden_size),
             nn.ReLU(),
             nn.Dropout(p=dropout),
-            nn.Linear(hidden_size, output_size),
         ]
 
-        self.fc = nn.Sequential(*layers)
+        self.encoder = nn.Sequential(*layers)
+        self.classifier = nn.Linear(hidden_size, output_size)
 
     def forward(self, data):
         # bs, tl, fs = x.shape  # [batch_size, time_length, input n_components]
 
         x = data['timeseries']
 
-        fc_output = self.fc(x)
-        logits = fc_output.mean(1)
+        features = self.fc(x)
+        features = features.mean(1)
+        logits = self.classifier(features)
 
-        return ModelOutputs(features=fc_output, logits=logits)
+        return ModelOutputs(features=features, logits=logits)

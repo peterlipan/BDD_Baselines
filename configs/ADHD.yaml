@@ -19,7 +19,8 @@ dataset: "ADHD200"
 task: "DX"
 atlas: "cc200"
 cnp: "Age, Performance IQ"
-cp: "Gender, Med Status"
+cp: "Gender"
+fusion: "early" # early, late, intermediate, or none
 
 # Training Options
 seed: 42

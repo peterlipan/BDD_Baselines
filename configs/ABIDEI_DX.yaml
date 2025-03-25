@@ -1,9 +1,9 @@
 # distributed training
 nodes: 1
-gpus: 4
+gpus: 3
 nr: 0
 workers: 8
-visible_gpus: "4,5,6,7"
+visible_gpus: "4,5,6"
 
 # Paths
 data_root: "/home/r20user17/Documents/ABIDE_pcp/cpac/filt_noglobal"
@@ -11,22 +11,24 @@ train_csv: "./datasets/splits/ABIDE_Training.csv"
 test_csv: "./datasets/splits/ABIDE_Testing.csv"
 val_csv: "./datasets/splits/ABIDE_Validation.csv"
 checkpoints: "./checkpoints"
+results: "./results"
 
 # Model Options
-model: "BNT"
+model: "LSTM"
 n_heads: 9
 
 # Dataset Options
 dataset: "ABIDE_BNT"
 task: "DX"
 atlas: "cc400"
-cnp: "AGE_AT_SCAN, BMI"
-cp: "SEX, HANDEDNESS_CATEGORY, CURRENT_MED_STATUS"
+cnp: "AGE_AT_SCAN"
+cp: "SEX"
+fusion: "early" # early, late, intermediate, dpl, or none
 
 # Training Options
 seed: 42
 batch_size: 30
-epochs: 20
+epochs: 100
 
 # Optimization options
 optimizer: "Adam"

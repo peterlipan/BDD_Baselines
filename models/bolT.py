@@ -202,13 +202,16 @@ class BolT(nn.Module):
         cls = self.encoder_postNorm(cls)
 
         if(self.hyperParams.pooling == "cls"):
-            logits = self.classifierHead(cls.mean(dim=1)) # (batchSize, #ofClasses)
+            features = cls.mean(dim=1)
         elif(self.hyperParams.pooling == "gmp"):
-            logits = self.classifierHead(roiSignals.mean(dim=1))
+            features = roiSignals.mean(dim=1)
+        
+        logits = self.classifierHead(features)
+            
 
         torch.cuda.empty_cache()
 
-        return ModelOutputs(logits=logits, cls=cls)
+        return ModelOutputs(logits=logits, features=features)
     
 
 

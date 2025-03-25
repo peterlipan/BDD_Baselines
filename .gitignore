@@ -6,6 +6,8 @@ __pycache__/
 # CSV files
 *.csv
 
+*.pt
+
 # wandb
 wandb/
 

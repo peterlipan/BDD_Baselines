@@ -1,8 +1,8 @@
 #!/bin/bash
 
 # Define the models and seeds
-models=("bnt" "fbnetgen" "comtf" "braingnn" "braingb" "dpm" "lstm" "transformer" "gru" "meanMLP")
-seeds=(1 42 123 456 789)
+models=("braingb" "gru" "transformer" "meanMLP" "bolT" "DICE" "Glacier" "ComTF")
+seeds=(123 456 789)
 atlases=("cc400" "cc200" "aal")
 
 # Iterate over each model and seed

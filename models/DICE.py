@@ -230,4 +230,4 @@ class DICE(nn.Module):
         logits = self.clf(FC)
         # logits.shape: [batch_size; n_classes]
 
-        return ModelOutputs(logits=logits)
+        return ModelOutputs(logits=logits, features=FC)

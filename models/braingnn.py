@@ -123,7 +123,8 @@ class BrainGNN(torch.nn.Module):
         s1 = torch.sigmoid(score1).view(x.size(0),-1)
         s2 = torch.sigmoid(score2).view(x.size(0),-1)
 
-        return ModelOutputs(logits=logits, w1=self.pool1.select.weight, w2=self.pool2.select.weight, s1=s1, s2=s2)
+        return ModelOutputs(logits=logits, w1=self.pool1.select.weight, 
+                            w2=self.pool2.select.weight, s1=s1, s2=s2, features=x)
 
 
     def augment_adj(self, edge_index, edge_weight, num_nodes):

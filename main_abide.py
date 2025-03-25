@@ -59,11 +59,14 @@ if __name__ == '__main__':
     print(f"Dataset: {args.dataset}")
     print(f"Atlas: {args.atlas}")
     print(f"Model: {args.model}")
+    print(f"Fusion: {args.fusion}")
     print('#' * 50)
 
     # check checkpoints path
     if not os.path.exists(args.checkpoints):
         os.makedirs(args.checkpoints)
+    if not os.path.exists(args.results):
+        os.makedirs(args.results)
 
     # init wandb
     if not args.debug:

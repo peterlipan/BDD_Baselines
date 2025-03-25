@@ -37,18 +37,36 @@ class AdhdROIDataset(Dataset):
             self.labels[self.labels > 0] = 1 
         self.n_classes = len(np.unique(self.labels))
 
+        if cp:
+            self.cp_columns = cp.replace(' ', '').split(',')
+            self.cp_fea = self.csv[self.cp_columns].fillna(-1).values.astype(int)
+            self.cp_fea[self.cp_fea < 0] = -1
+            self.num_cp = len(self.cp_columns)
+        else:
+            self.cp_columns = None
+            self.cp_fea = None
+            self.num_cp = 0
+        if cnp:
+            self.cnp_columns = cnp.replace(' ', '').split(',')
+            self.cnp_fea = self.csv[self.cnp_columns].fillna(-1).values.astype(float)
+            self.cnp_fea[self.cnp_fea < 0] = -1
+            self.num_cnp = len(self.cnp_columns)
+        else:
+            self.cnp_columns = None
+            self.cnp_fea = None
+            self.num_cnp = 0
+        
+        self.num_phe = self.num_cp + self.num_cnp
 
-        self.cp_columns = cp.split(', ')
-        self.cnp_columns = cnp.split(', ')
+        if cnp and cp:
+            self.phenotypes = np.concatenate((self.cp_fea, self.cnp_fea), axis=1)
+        elif cnp:
+            self.phenotypes = self.cnp_fea
+        elif cp:
+            self.phenotypes = self.cp_fea
+        else:
+            raise ValueError("No phenotypes provided")
 
-        self.cp_labels = self.csv[self.cp_columns].values.astype(int)
-        self.cnp_labels = self.csv[self.cnp_columns].values.astype(float)
-
-        self.cp_labels[self.cp_labels < 0] = -1
-        self.cnp_labels[self.cnp_labels < 0] = -1
-
-        self.num_cp = len(self.cp_columns) + 1
-        self.num_cnp = len(self.cnp_columns)
     
     def __len__(self):
         return len(self.labels)
@@ -59,8 +77,7 @@ class AdhdROIDataset(Dataset):
         filename = row['Filename']
         label = self.labels[idx]
         onehot = self.onehot[idx]
-        cp_label = self.cp_labels[idx]
-        cnp_label = self.cnp_labels[idx]
+        phi = self.phenotypes[idx]
         file_path = os.path.join(self.data_path, subject, filename)
         timeseries = pd.read_csv(file_path, sep='\t').values[:, 2:].astype(float) # drop the first two columns
         measure = ConnectivityMeasure(kind='correlation')
@@ -74,12 +91,11 @@ class AdhdROIDataset(Dataset):
         corr = torch.from_numpy(corr).float()
         label = torch.from_numpy(np.array(label)).long()
         onehot = torch.from_numpy(onehot).long()
-        cnp_label = torch.from_numpy(cnp_label).float()
-        cp_label = torch.from_numpy(cp_label).float()
+        phenotypes = torch.from_numpy(phi).float()
 
         sparse_connection = corr.clone()
         sparse_connection.fill_diagonal_(1)
 
         return {'timeseries': timeseries, 'corr': corr, 'label': label, 'onehot': onehot,
-                'sparse_connection': sparse_connection, 'cnp_label': cnp_label, 'cp_label': cp_label}
+                'sparse_connection': sparse_connection, 'phenotypes': phenotypes}
 
