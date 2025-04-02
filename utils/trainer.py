@@ -100,7 +100,8 @@ class Trainer:
         step_per_epoch = len(self.train_dataset) // (args.batch_size * args.world_size)
         self.model = MultiModalFusion(args)
         if reload:
-            self.load_model(args)
+            print(f"Loading model from {args.reload}")
+            self.model.load_state_dict(torch.load(args.reload))
         self.model = self.model.cuda()
 
         self.optimizer = getattr(torch.optim, args.optimizer)(self.model.parameters(), lr=args.lr,
@@ -238,7 +239,8 @@ class Trainer:
             'features': [],
             'probs': [],
             'labels': [],
-            'phenotypes': []
+            'phenotypes': [],
+            'Subjects': [],
         }
         filename = f"Features_{self.args.dataset}_{self.args.atlas}_{self.args.model}_{self.args.fusion}Fusion.pt"
         save_path = os.path.join(self.args.results, filename)
@@ -253,6 +255,7 @@ class Trainer:
                 samples['probs'].append(F.softmax(outputs.logits, dim=-1).cpu())
                 samples['labels'].append(data['label'].cpu())
                 samples['phenotypes'].append(data['phenotypes'].cpu())
+                samples['Subjects'].append(data['sub_id'].cpu())
             
             for data in self.val_loader:
                 data = {key: value.cuda(non_blocking=True) for key, value in data.items()}
@@ -263,6 +266,7 @@ class Trainer:
                 samples['probs'].append(F.softmax(outputs.logits, dim=-1).cpu())
                 samples['labels'].append(data['label'].cpu())
                 samples['phenotypes'].append(data['phenotypes'].cpu())
+                samples['Subjects'].append(data['sub_id'].cpu())
 
             # Concatenate all batches along the first dimension
             samples = {k: torch.cat(v, dim=0) for k, v in samples.items()}

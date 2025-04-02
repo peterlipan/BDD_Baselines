@@ -68,6 +68,7 @@ class AbideROIDataset(Dataset):
         self.filenames = csv['FILE_ID'].values
 
         self.labels = csv['DX_GROUP'].values
+        self.sub_idx = csv['SUB_ID'].values
         enc = OneHotEncoder(handle_unknown='ignore')
         self.onehot = enc.fit_transform(self.labels.reshape(-1, 1)).toarray()
         self.onehot = self.onehot.astype(int)
@@ -127,6 +128,9 @@ class AbideROIDataset(Dataset):
         onehot = self.onehot[idx]
         file_id = self.filenames[idx]
         phi = self.phenotypes[idx]
+        cp = self.cp_fea[idx]
+        cnp = self.cnp_fea[idx]
+        sub = self.sub_idx[idx]
 
         file_path = os.path.join(self.data_root, self.filenames[idx] + self.suffix)
         if not os.path.exists(file_path):
@@ -143,11 +147,15 @@ class AbideROIDataset(Dataset):
         corr = torch.from_numpy(corr).float()
         label = torch.from_numpy(np.array(label)).long()
         onehot = torch.from_numpy(onehot).long()
-        phenotpyes = torch.from_numpy(phi).float()       
+        phenotpyes = torch.from_numpy(phi).float()   
+        cp = torch.from_numpy(cp).long()
+        cnp = torch.from_numpy(cnp).float()    
+        sub = torch.from_numpy(np.array(sub)).long()
         
 
         sparse_connection = corr.clone()
         sparse_connection.fill_diagonal_(1)
         
         return {'timeseries': timeseries, 'corr': corr, 'label': label, 'onehot': onehot,
-                'sparse_connection': sparse_connection, 'phenotypes': phenotpyes}
+                'sparse_connection': sparse_connection, 'phenotypes': phenotpyes,
+                'cp': cp, 'cnp': cnp, 'sub_id': sub}

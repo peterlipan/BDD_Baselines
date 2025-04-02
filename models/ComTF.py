@@ -165,6 +165,8 @@ class ComBrainTF(nn.Module):
             nn.Linear(32, 2)
         )
 
+        self.hidden_size = 8 * sizes[-1]
+
         self.assignMat = None
         self.mlp = nn.Sequential(
             nn.Linear(8 * forward_dim, 512),

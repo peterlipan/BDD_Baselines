@@ -32,6 +32,7 @@ class BrainNetCNN(torch.nn.Module):
         self.dense1 = torch.nn.Linear(256, 128)
         self.dense2 = torch.nn.Linear(128, 30)
         self.dense3 = torch.nn.Linear(30, 2)
+        self.hidden_size = 256
 
     def forward(self, data):
         node_feature = data['corr'].unsqueeze(dim=1)

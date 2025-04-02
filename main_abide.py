@@ -26,7 +26,7 @@ def main(gpu, args, wandb_logger):
     np.random.seed(args.seed)
 
     trainer = Trainer(args, wandb_logger)
-    trainer.run(args)
+    trainer.inference(args)
 
 
 if __name__ == '__main__':

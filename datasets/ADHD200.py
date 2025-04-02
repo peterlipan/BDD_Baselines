@@ -78,6 +78,8 @@ class AdhdROIDataset(Dataset):
         label = self.labels[idx]
         onehot = self.onehot[idx]
         phi = self.phenotypes[idx]
+        cp = self.cp_fea[idx]
+        cnp = self.cnp_fea[idx]
         file_path = os.path.join(self.data_path, subject, filename)
         timeseries = pd.read_csv(file_path, sep='\t').values[:, 2:].astype(float) # drop the first two columns
         measure = ConnectivityMeasure(kind='correlation')
@@ -92,10 +94,13 @@ class AdhdROIDataset(Dataset):
         label = torch.from_numpy(np.array(label)).long()
         onehot = torch.from_numpy(onehot).long()
         phenotypes = torch.from_numpy(phi).float()
+        cp = torch.from_numpy(cp).long()
+        cnp = torch.from_numpy(cnp).float()
 
         sparse_connection = corr.clone()
         sparse_connection.fill_diagonal_(1)
 
         return {'timeseries': timeseries, 'corr': corr, 'label': label, 'onehot': onehot,
-                'sparse_connection': sparse_connection, 'phenotypes': phenotypes}
+                'sparse_connection': sparse_connection, 'phenotypes': phenotypes,
+                'cp': cp, 'cnp': cnp}
 

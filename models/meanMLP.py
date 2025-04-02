@@ -43,7 +43,7 @@ class meanMLP(nn.Module):
 
         x = data['timeseries']
 
-        features = self.fc(x)
+        features = self.encoder(x)
         features = features.mean(1)
         logits = self.classifier(features)
 

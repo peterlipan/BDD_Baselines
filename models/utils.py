@@ -77,7 +77,7 @@ class MultiModalFusion(nn.Module):
     def __init__(self, args):
         super().__init__()
         fusion_type = args.fusion
-        assert fusion_type in ['early', 'intermediate', 'late', 'none'], 'Invalid fusion type'
+        assert fusion_type in ['early', 'intermediate', 'late', 'none', 'dpl'], 'Invalid fusion type'
         
         self.image_model = get_model(args)
         self.classifier = nn.Linear(self.image_model.hidden_size + args.num_phe, 2) if fusion_type == 'intermediate' else None
