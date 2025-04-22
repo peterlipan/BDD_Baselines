@@ -95,6 +95,7 @@ class BrainNetworkTransformer(nn.Module):
             nn.LeakyReLU()
         )
 
+
         self.fc = nn.Sequential(
             nn.Linear(8 * sizes[-1], 256),
             nn.LeakyReLU(),
@@ -102,6 +103,8 @@ class BrainNetworkTransformer(nn.Module):
             nn.LeakyReLU(),
             nn.Linear(32, 2)
         )
+
+        self.hidden_size = 8 * sizes[-1]
 
     def forward(self, data):
         node_feature = data['corr']

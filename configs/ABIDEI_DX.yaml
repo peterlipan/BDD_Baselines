@@ -3,7 +3,7 @@ nodes: 1
 gpus: 4
 nr: 0
 workers: 8
-visible_gpus: "4,5,6,7"
+visible_gpus: "0,1,2,3"
 
 # Paths
 data_root: "/home/r20user17/Documents/ABIDE_pcp/cpac/filt_noglobal"
@@ -11,11 +11,11 @@ train_csv: "./datasets/splits/ABIDE_Training.csv"
 test_csv: "./datasets/splits/ABIDE_Testing.csv"
 val_csv: "./datasets/splits/ABIDE_Validation.csv"
 checkpoints: "./checkpoints"
-reload: "./checkpoints/ComTF_dpl_ABIDE_BNT_cc400_DX_AUC_0.7794_.pth"
+reload: "./checkpoints/LSTM_late_ABIDE_BNT_cc400_DX_AUC_0.6349_.pth"
 results: "./results"
 
 # Model Options
-model: "ComTF"
+model: "LSTM"
 n_heads: 9
 
 # Dataset Options
@@ -24,7 +24,7 @@ task: "DX"
 atlas: "cc400"
 cnp: "AGE_AT_SCAN"
 cp: "SEX"
-fusion: "dpl" # early, late, intermediate, dpl, or none
+fusion: "late" # early, late, intermediate, dpl, or none
 
 # Training Options
 seed: 42
